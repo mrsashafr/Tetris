@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tetris — 2D / 3D</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="start-screen" class="start-screen">
+      <h1>Choose game mode</h1>
+      <p class="start-sub">Each mode uses a different piece size (2D: 4 squares, 3D: 1–4 cubes).</p>
+      <div class="start-nick-row">
+        <label for="start-nick" class="start-nick-label">Nickname</label>
+        <input
+          id="start-nick"
+          class="start-nick-input"
+          type="text"
+          maxlength="24"
+          autocomplete="username"
+          placeholder="Player"
+          aria-describedby="start-nick-hint"
+        />
+        <p id="start-nick-hint" class="start-nick-hint">
+          Used for the 2D Top 10. Scores are kept in this browser (see the JSON block at the bottom of
+          this page for the default list).
+        </p>
+      </div>
+      <div class="start-buttons">
+        <button id="btn-2d" type="button" class="start-btn">2D Tetris</button>
+        <button id="btn-3d" type="button" class="start-btn start-btn-3d">3D Tetris</button>
+      </div>
+      <p class="start-hint">3D mode loads Three.js from a CDN (requires internet once).</p>
+    </div>
+
+    <div id="game-2d" class="app-wrap" hidden>
+      <main class="app">
+        <section class="hud">
+          <h1>2D Tetris</h1>
+          <p>Score: <span id="score">0</span></p>
+          <p>Lines: <span id="lines">0</span></p>
+          <p>Speed Level: <span id="speed-level">5</span>/10</p>
+          <label for="speed-select">Choose speed:</label>
+          <select id="speed-select" aria-label="Falling speed level">
+            <option value="1">1 - Slowest</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5 - Default</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10 - Fastest</option>
+          </select>
+          <p id="status">Press Enter to start</p>
+          <div class="next-panel">
+            <p>Next:</p>
+            <canvas
+              id="next"
+              width="120"
+              height="120"
+              aria-label="Next tetromino preview"
+            ></canvas>
+          </div>
+          <div class="hud-actions">
+            <button id="restart" type="button">Restart</button>
+            <button id="pause" type="button">Pause</button>
+          </div>
+          <button id="top10-open" type="button" class="btn-top10">
+            Top 10
+          </button>
+          <div class="controls">
+            <p>Controls:</p>
+            <p>Left/Right: Move</p>
+            <p>Up: Rotate</p>
+            <p>Down: Soft drop</p>
+            <p>Space: Hard drop</p>
+            <p>P / Pause button: Pause or resume</p>
+            <p>Speed can be changed anytime</p>
+            <p class="top10-hint">
+              Top 10 is stored in this page: default entries live in the
+              <code>&lt;script type="application/json" id="top10-data"&gt;</code>
+              block below; your results are merged into
+              <strong>localStorage</strong> for this site in your browser.
+            </p>
+          </div>
+        </section>
+        <canvas
+          id="board"
+          width="300"
+          height="600"
+          aria-label="Tetris game board"
+        ></canvas>
+      </main>
+      <dialog id="top10-dialog" class="top10-dialog">
+        <form method="dialog" class="top10-dialog-inner">
+          <h2 class="top10-dialog-title">Top 10 scores</h2>
+          <p id="top10-summary" class="top10-summary" hidden></p>
+          <div class="top10-table-wrap">
+            <table id="top10-table" class="top10-table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Nick</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Date</th>
+                </tr>
+              </thead>
+              <tbody id="top10-body"></tbody>
+            </table>
+            <p id="top10-empty" class="top10-empty" hidden>
+              No scores yet. Finish a game to save a result.
+            </p>
+          </div>
+          <button type="submit" id="top10-close" class="top10-close">
+            Close
+          </button>
+        </form>
+      </dialog>
+    </div>
+
+    <div id="game-3d" class="app-wrap app-wrap-3d" hidden>
+      <main class="app app-3d">
+        <section class="hud hud-3d">
+          <h1>3D Tetris</h1>
+          <p>Pieces: 1 to 4 cubes each</p>
+          <p>Score: <span id="score3d">0</span></p>
+          <p>Layers cleared: <span id="lines3d">0</span></p>
+          <p>Speed Level: <span id="speed-level-3d">5</span>/10</p>
+          <label for="speed-select-3d">Choose speed:</label>
+          <select id="speed-select-3d" aria-label="Falling speed level 3D">
+            <option value="1">1 - Slowest</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5" selected>5 - Default</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10 - Fastest</option>
+          </select>
+          <p id="status3d">Press Enter to start</p>
+          <div class="next-panel">
+            <p>Next:</p>
+            <canvas
+              id="next3d"
+              width="120"
+              height="120"
+              aria-label="Next piece preview"
+            ></canvas>
+          </div>
+          <div class="hud-actions">
+            <button id="restart-3d" type="button">Restart</button>
+            <button id="pause-3d" type="button">Pause</button>
+          </div>
+        </section>
+        <div
+          id="board3d"
+          class="board3d"
+          aria-label="3D Tetris view"
+        ></div>
+        <aside class="hud hud-controls-right" aria-label="3D game controls">
+          <h2 class="controls-heading">Controls</h2>
+          <div class="controls controls-3d">
+            <p>Arrows: move (X and Z)</p>
+            <p>S: Soft drop</p>
+            <p>Space: Hard drop</p>
+            <p>Q / W / E: Rotate X / Y / Z</p>
+            <p>P / Pause button: Pause or resume</p>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- Default Top 10 (nick, score, date). Edit this JSON to ship preset rows; new games merge here and persist in localStorage. -->
+    <script type="application/json" id="top10-data">[]</script>
+    <script src="./main.js"></script>
+  </body>
+</html>
