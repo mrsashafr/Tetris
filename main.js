@@ -1,4 +1,20 @@
 (function () {
+  const SPLASH_MS = 5000;
+  const splashScreen = document.getElementById("splash-screen");
+  if (splashScreen) {
+    let splashTimeoutId = null;
+    function dismissSplash() {
+      if (splashScreen.hidden) return;
+      splashScreen.hidden = true;
+      if (splashTimeoutId !== null) {
+        window.clearTimeout(splashTimeoutId);
+        splashTimeoutId = null;
+      }
+    }
+    splashTimeoutId = window.setTimeout(dismissSplash, SPLASH_MS);
+    splashScreen.addEventListener("click", dismissSplash);
+  }
+
   const NICK_STORAGE_KEY = "tetrisNick";
   const startScreen = document.getElementById("start-screen");
   const game2d = document.getElementById("game-2d");
