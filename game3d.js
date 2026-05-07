@@ -14,6 +14,10 @@
   const START_SPEED_LEVEL = 5;
   const SOFT_DROP_POINTS_PER_LINE = 1;
   const HARD_DROP_POINTS_PER_LINE = 2;
+  const LAYER_CLEAR_POINTS = 200;
+  /** Extra score as % of points for that clear (2→10%, 3→20%, 4→30%). */
+  const COMBO_BONUS_PERCENT = { 2: 10, 3: 20, 4: 30 };
+  const COMBO_TOAST_FALLBACK_MS = 1050;
 
   function normalizeCells(cells) {
     const uniq = new Map();
@@ -173,6 +177,7 @@
   const pauseBtn = document.getElementById("pause-3d");
   const nextCanvas = document.getElementById("next3d");
   const nextCtx = nextCanvas.getContext("2d");
+  const comboToastEl = document.getElementById("combo-toast-3d");
 
   let board = createEmptyBoard();
   let current = null;
@@ -184,6 +189,7 @@
   let paused = false;
   let lastTick = 0;
   let dropInterval = getDropIntervalMs(START_SPEED_LEVEL);
+  let comboToastCleanupId = null;
   let sceneDirty = true;
 
   const scene = new THREE.Scene();
@@ -352,6 +358,44 @@
     return true;
   }
 
+  function comboPercentForClearCount(cleared) {
+    if (cleared <= 1) {
+      return 0;
+    }
+    if (cleared >= 4) {
+      return COMBO_BONUS_PERCENT[4];
+    }
+    return COMBO_BONUS_PERCENT[cleared] || 0;
+  }
+
+  function hideComboToast() {
+    if (!comboToastEl) {
+      return;
+    }
+    comboToastEl.hidden = true;
+    comboToastEl.classList.remove("combo-toast--anim");
+  }
+
+  function showComboToast(percent) {
+    if (!comboToastEl) {
+      return;
+    }
+    if (comboToastCleanupId !== null) {
+      window.clearTimeout(comboToastCleanupId);
+      comboToastCleanupId = null;
+    }
+    comboToastEl.hidden = false;
+    comboToastEl.textContent = "+" + String(percent) + "%";
+    comboToastEl.classList.remove("combo-toast--anim");
+    void comboToastEl.offsetWidth;
+    comboToastEl.classList.add("combo-toast--anim");
+    comboToastEl.addEventListener("animationend", hideComboToast, { once: true });
+    comboToastCleanupId = window.setTimeout(function () {
+      comboToastCleanupId = null;
+      hideComboToast();
+    }, COMBO_TOAST_FALLBACK_MS);
+  }
+
   function clearLayers() {
     let cleared = 0;
     for (let y = H - 1; y >= 0; y -= 1) {
@@ -366,7 +410,13 @@
     }
     if (cleared > 0) {
       lines += cleared;
-      score += cleared * 200;
+      const base = cleared * LAYER_CLEAR_POINTS;
+      const pct = comboPercentForClearCount(cleared);
+      const bonus = pct > 0 ? Math.round((base * pct) / 100) : 0;
+      score += base + bonus;
+      if (pct > 0) {
+        showComboToast(pct);
+      }
       updateHud();
     }
   }
@@ -511,6 +561,11 @@
   }
 
   function startGame() {
+    if (comboToastCleanupId !== null) {
+      window.clearTimeout(comboToastCleanupId);
+      comboToastCleanupId = null;
+    }
+    hideComboToast();
     board = createEmptyBoard();
     score = 0;
     lines = 0;
