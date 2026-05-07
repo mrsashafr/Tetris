@@ -17,7 +17,7 @@
   const LAYER_CLEAR_POINTS = 200;
   /** Extra score as % of points for that clear (2→10%, 3→20%, 4→30%). */
   const COMBO_BONUS_PERCENT = { 2: 10, 3: 20, 4: 30 };
-  const COMBO_STATUS_MS = 2500;
+  const COMBO_TOAST_FALLBACK_MS = 1050;
 
   function normalizeCells(cells) {
     const uniq = new Map();
@@ -177,6 +177,7 @@
   const pauseBtn = document.getElementById("pause-3d");
   const nextCanvas = document.getElementById("next3d");
   const nextCtx = nextCanvas.getContext("2d");
+  const comboToastEl = document.getElementById("combo-toast-3d");
 
   let board = createEmptyBoard();
   let current = null;
@@ -188,7 +189,7 @@
   let paused = false;
   let lastTick = 0;
   let dropInterval = getDropIntervalMs(START_SPEED_LEVEL);
-  let comboStatusTimeoutId = null;
+  let comboToastCleanupId = null;
   let sceneDirty = true;
 
   const scene = new THREE.Scene();
@@ -367,19 +368,32 @@
     return COMBO_BONUS_PERCENT[cleared] || 0;
   }
 
-  function showComboBonusStatus(percent) {
-    if (comboStatusTimeoutId !== null) {
-      window.clearTimeout(comboStatusTimeoutId);
-      comboStatusTimeoutId = null;
+  function hideComboToast() {
+    if (!comboToastEl) {
+      return;
     }
-    statusEl.textContent =
-      "Combo! +" + String(percent) + "% extra on this clear";
-    comboStatusTimeoutId = window.setTimeout(function () {
-      comboStatusTimeoutId = null;
-      if (!gameOver) {
-        statusEl.textContent = paused ? "Paused" : "Running";
-      }
-    }, COMBO_STATUS_MS);
+    comboToastEl.hidden = true;
+    comboToastEl.classList.remove("combo-toast--anim");
+  }
+
+  function showComboToast(percent) {
+    if (!comboToastEl) {
+      return;
+    }
+    if (comboToastCleanupId !== null) {
+      window.clearTimeout(comboToastCleanupId);
+      comboToastCleanupId = null;
+    }
+    comboToastEl.hidden = false;
+    comboToastEl.textContent = "+" + String(percent) + "%";
+    comboToastEl.classList.remove("combo-toast--anim");
+    void comboToastEl.offsetWidth;
+    comboToastEl.classList.add("combo-toast--anim");
+    comboToastEl.addEventListener("animationend", hideComboToast, { once: true });
+    comboToastCleanupId = window.setTimeout(function () {
+      comboToastCleanupId = null;
+      hideComboToast();
+    }, COMBO_TOAST_FALLBACK_MS);
   }
 
   function clearLayers() {
@@ -401,7 +415,7 @@
       const bonus = pct > 0 ? Math.round((base * pct) / 100) : 0;
       score += base + bonus;
       if (pct > 0) {
-        showComboBonusStatus(pct);
+        showComboToast(pct);
       }
       updateHud();
     }
@@ -547,10 +561,11 @@
   }
 
   function startGame() {
-    if (comboStatusTimeoutId !== null) {
-      window.clearTimeout(comboStatusTimeoutId);
-      comboStatusTimeoutId = null;
+    if (comboToastCleanupId !== null) {
+      window.clearTimeout(comboToastCleanupId);
+      comboToastCleanupId = null;
     }
+    hideComboToast();
     board = createEmptyBoard();
     score = 0;
     lines = 0;

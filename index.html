@@ -95,12 +95,21 @@
             </p>
           </div>
         </section>
-        <canvas
-          id="board"
-          width="300"
-          height="600"
-          aria-label="Tetris game board"
-        ></canvas>
+        <div class="play-surface">
+          <canvas
+            id="board"
+            width="300"
+            height="600"
+            aria-label="Tetris game board"
+          ></canvas>
+          <div
+            id="combo-toast-2d"
+            class="combo-toast"
+            hidden
+            role="status"
+            aria-live="polite"
+          ></div>
+        </div>
       </main>
       <dialog id="top10-dialog" class="top10-dialog">
         <form method="dialog" class="top10-dialog-inner">
@@ -165,11 +174,20 @@
             <button id="pause-3d" type="button">Pause</button>
           </div>
         </section>
-        <div
-          id="board3d"
-          class="board3d"
-          aria-label="3D Tetris view"
-        ></div>
+        <div class="play-surface play-surface-3d">
+          <div
+            id="board3d"
+            class="board3d"
+            aria-label="3D Tetris view"
+          ></div>
+          <div
+            id="combo-toast-3d"
+            class="combo-toast"
+            hidden
+            role="status"
+            aria-live="polite"
+          ></div>
+        </div>
         <aside class="hud hud-controls-right" aria-label="3D game controls">
           <h2 class="controls-heading">Controls</h2>
           <div class="controls controls-3d">

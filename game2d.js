@@ -10,7 +10,8 @@ const HARD_DROP_POINTS_PER_LINE = 2;
 const LINE_CLEAR_POINTS = 100;
 /** Extra score as % of points earned for that clear (2→10%, 3→20%, 4→30%). */
 const COMBO_BONUS_PERCENT = { 2: 10, 3: 20, 4: 30 };
-const COMBO_STATUS_MS = 2500;
+/** Toast visibility matches CSS `combo-toast-lifecycle` (1s). */
+const COMBO_TOAST_FALLBACK_MS = 1050;
 
 const TETROMINOES = [
   {
@@ -95,6 +96,7 @@ const top10Body = document.getElementById("top10-body");
 const top10Empty = document.getElementById("top10-empty");
 const top10Table = document.getElementById("top10-table");
 const top10OpenBtn = document.getElementById("top10-open");
+const comboToastEl = document.getElementById("combo-toast-2d");
 
 /** Merged Top 10 rows (nick, score, date); persisted in localStorage, seeded from #top10-data in index.html. */
 const TOP10_STORAGE_KEY = "tetrisTop10";
@@ -110,7 +112,7 @@ let gameOver = true;
 let paused = false;
 let lastTick = 0;
 let dropInterval = getDropIntervalMs(START_SPEED_LEVEL);
-let comboStatusTimeoutId = null;
+let comboToastCleanupId = null;
 
 function top10DisplayNick(row) {
   if (row && typeof row.nick === "string" && row.nick.trim()) {
@@ -381,19 +383,32 @@ function comboPercentForClearCount(cleared) {
   return COMBO_BONUS_PERCENT[cleared] || 0;
 }
 
-function showComboBonusStatus(percent) {
-  if (comboStatusTimeoutId !== null) {
-    window.clearTimeout(comboStatusTimeoutId);
-    comboStatusTimeoutId = null;
+function hideComboToast() {
+  if (!comboToastEl) {
+    return;
   }
-  statusEl.textContent =
-    "Combo! +" + String(percent) + "% extra on this clear";
-  comboStatusTimeoutId = window.setTimeout(function () {
-    comboStatusTimeoutId = null;
-    if (!gameOver) {
-      statusEl.textContent = paused ? "Paused" : "Running";
-    }
-  }, COMBO_STATUS_MS);
+  comboToastEl.hidden = true;
+  comboToastEl.classList.remove("combo-toast--anim");
+}
+
+function showComboToast(percent) {
+  if (!comboToastEl) {
+    return;
+  }
+  if (comboToastCleanupId !== null) {
+    window.clearTimeout(comboToastCleanupId);
+    comboToastCleanupId = null;
+  }
+  comboToastEl.hidden = false;
+  comboToastEl.textContent = "+" + String(percent) + "%";
+  comboToastEl.classList.remove("combo-toast--anim");
+  void comboToastEl.offsetWidth;
+  comboToastEl.classList.add("combo-toast--anim");
+  comboToastEl.addEventListener("animationend", hideComboToast, { once: true });
+  comboToastCleanupId = window.setTimeout(function () {
+    comboToastCleanupId = null;
+    hideComboToast();
+  }, COMBO_TOAST_FALLBACK_MS);
 }
 
 function clearLines() {
@@ -414,7 +429,7 @@ function clearLines() {
     const bonus = pct > 0 ? Math.round((base * pct) / 100) : 0;
     score += base + bonus;
     if (pct > 0) {
-      showComboBonusStatus(pct);
+      showComboToast(pct);
     }
     updateHud();
   }
@@ -610,10 +625,11 @@ function startGame() {
   if (top10Dialog.open) {
     top10Dialog.close();
   }
-  if (comboStatusTimeoutId !== null) {
-    window.clearTimeout(comboStatusTimeoutId);
-    comboStatusTimeoutId = null;
+  if (comboToastCleanupId !== null) {
+    window.clearTimeout(comboToastCleanupId);
+    comboToastCleanupId = null;
   }
+  hideComboToast();
   board = createEmptyBoard();
   score = 0;
   lines = 0;
